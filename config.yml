@@ -1,0 +1,9 @@
+sql_database:
+  host: "database-2.csozaa62oxle.us-east-1.rds.amazonaws.com"
+  port: 3306
+  user: "masterUsername"
+  password: "adamhamden"
+log_info:
+  database_name: "test_database_1"
+  robot_id: 1
+  keep_local_copy: True
