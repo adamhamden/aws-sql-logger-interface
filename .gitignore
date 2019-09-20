@@ -1,2 +1,6 @@
 *.db
 *.db3
+
+venv/
+
+.idea/
