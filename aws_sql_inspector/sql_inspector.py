@@ -2,7 +2,7 @@ import yaml
 import mysql.connector
 from prettytable import PrettyTable
 import time
-
+import pandas as pd
 
 class Query:
 
@@ -16,8 +16,28 @@ class Query:
         x = PrettyTable()
         x.field_names = self.header
 
-        for match in self.data:
+        self.new_data = []
+        for row in self.data:
+            new_row = []
+            for value in row:
+                if type(value).__name__ == "bytearray":
+                    try:
+                        new_row.append(value.decode())
+                    except:
+                        new_row.append(value)
+                else:
+                    new_row.append(value)
+            self.new_data.append(new_row)
+
+
+        for match in self.new_data:
             x.add_row(list(match))
+
+        self.new_header = []
+        for col in self.header:
+            self.new_header.append(col[0].decode())
+
+        x.field_names = self.new_header
 
         return str(x)
 
@@ -44,7 +64,6 @@ class SQLInspector:
         )
 
         self.database_name = self.cfg["log_info"]["database_name"]
-        self.keepLocalCopy = self.cfg["log_info"]["keep_local_copy"]
 
         self.cursor = self.db.cursor(prepared=True)
 
@@ -53,7 +72,11 @@ class SQLInspector:
         execute_statement = "SELECT * FROM log WHERE " + condition
         self.cursor.execute(execute_statement)
         list_of_matches = self.cursor.fetchall()
-        query = Query(list_of_matches)
+
+
+        self.cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?;", (self.database_name, "log"))
+        header_list = self.cursor.fetchall()
+        query = Query(list_of_matches, header_list)
 
         return query
 

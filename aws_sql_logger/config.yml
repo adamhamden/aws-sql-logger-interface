@@ -5,5 +5,4 @@ sql_database:
   password: "adamhamden"
 log_info:
   database_name: "test_database_1"
-  robot_id: 1
   keep_local_copy: True

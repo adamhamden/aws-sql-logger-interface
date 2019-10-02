@@ -18,10 +18,15 @@ class SQLLogger:
           passwd=self.cfg["sql_database"]["password"],
         )
 
+
+
         self.database_name = self.cfg["log_info"]["database_name"]
         self.keepLocalCopy = self.cfg["log_info"]["keep_local_copy"]
 
         self.cursor = self.db.cursor(prepared=True)
+
+        """self.cursor.execute("DROP DATABASE test_database_1")
+        self.db.commit()"""
 
         self.cursor.execute("CREATE DATABASE IF NOT EXISTS  "+ self.database_name)
 
@@ -118,7 +123,7 @@ class SQLLogger:
             raise ValueError("Attempting to write to an invalid topic name")
 
         topic_id = topic_matches[0][0]
-        topic_data_type = topic_matches[0][2]
+        topic_data_type = topic_matches[0][2].decode()
         insert_data_type = str(type(data).__name__)
 
         is_mismatched = 0
@@ -138,10 +143,15 @@ if __name__ == "__main__":
 
     logger = SQLLogger()
     #logger.add_topic("some_topic", "int")
-    logger.write("some_topic", 234, "my_file.py", True)
-    logger.write("some_topic", 124, "my_file.py", True)
-    logger.write("some_topic", 23457, "my_file.py", True)
-    logger.write("some_topic", 344657, "my_file.py", True)
     #logger.add_topic("some_new_topic", "int")
+
+    logger.write("some_topic", 234, "my_file.py")
+    logger.write("some_topic", 124, "my_file.py")
+    logger.write("some_topic", 23457, "my_file.py")
+    logger.write("some_topic", 344657, "my_file.py")
+
+    logger.add_topic("my_new_topic", "int")
+    logger.add_topic("my_new_topic", "string")
+
 
     logger.backup()
