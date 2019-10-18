@@ -1,8 +1,8 @@
 *.db
 *.db3
+*.pyc
+mysql.connector
 
 venv/
-
 .idea/
-
 __pycache__/

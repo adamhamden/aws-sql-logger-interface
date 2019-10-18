@@ -4,12 +4,12 @@ from prettytable import PrettyTable
 import time
 import pandas as pd
 
+
 class Query:
 
     def __init__(self, list_of_matches, header=[]):
         self.header = header
         self.data = list_of_matches
-
 
     def __repr__(self):
 

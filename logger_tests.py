@@ -8,15 +8,17 @@ import time
 inspector = si.SQLInspector()
 query = None
 
+
 def update_query(table_name):
     global query
-    query = str(inspector.get_query(table_name,"1=1"))
+    query = str(inspector.get_query(table_name, "1=1"))
+
 
 class TestLogger(unittest.TestCase):
 
     def testTopics(self):
         robot_logger = rl.RobotLogger()
-        robot_logger.clear_db()
+        robot_logger._clear_db()
         for i in range(0, 5):
             robot_logger.add_topic("test_thread" + str(i), "int")
 
@@ -27,7 +29,7 @@ class TestLogger(unittest.TestCase):
 
     def testThread(self):
         robot_logger = rl.RobotLogger()
-        robot_logger.clear_db()
+        robot_logger._clear_db()
         robot_logger.add_topic("test_thread_1", "int")
         for i in range(0, 5):
             robot_logger.write("test_thread_1", i, str(__file__), True)
@@ -39,7 +41,7 @@ class TestLogger(unittest.TestCase):
 
     def testAddInvalidTopic(self):
         robot_logger = rl.RobotLogger()
-        robot_logger.clear_db()
+        robot_logger._clear_db()
         robot_logger.add_topic("test_thread_1", "int")
 
         try:
@@ -49,15 +51,14 @@ class TestLogger(unittest.TestCase):
         else:
             self.assertTrue(False)
 
-
     def testWriteToInvalidTopic(self):
         robot_logger = rl.RobotLogger()
-        robot_logger.clear_db()
+        robot_logger._clear_db()
         robot_logger.add_topic("test_thread_1", "int")
 
         try:
             robot_logger.write("test_thread_2", 1, str(__file__), True)
-        except:
+        except ValueError:
             self.assertTrue(True)
         else:
             self.assertTrue(False)
@@ -65,7 +66,7 @@ class TestLogger(unittest.TestCase):
     def testMultipleWrites(self):
 
         robot_logger1 = rl.RobotLogger()
-        robot_logger1.clear_db()
+        robot_logger1._clear_db()
         robot_logger1.add_topic("test_thread_1", "int")
 
         robot_logger2 = rl.RobotLogger()

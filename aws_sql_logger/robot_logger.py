@@ -4,7 +4,8 @@ from mysql.connector import pooling
 import time
 import threading
 
-class RobotLogger():
+
+class RobotLogger:
 
     def __init__(self):
         self.cfg = None
@@ -12,8 +13,8 @@ class RobotLogger():
             self.cfg = yaml.safe_load(ymlfile)
 
         self.db = mysql.connector.connect(
-          host= self.cfg["sql_database"]["host"],
-          port = self.cfg["sql_database"]["port"],
+          host=self.cfg["sql_database"]["host"],
+          port=self.cfg["sql_database"]["port"],
           user=self.cfg["sql_database"]["user"],
           passwd=self.cfg["sql_database"]["password"],
         )
@@ -21,7 +22,7 @@ class RobotLogger():
         self.database_name = self.cfg["log_info"]["database_name"]
         self.keepLocalCopy = self.cfg["log_info"]["keep_local_copy"]
         self.cursor = self.db.cursor(prepared=True)
-        self.cursor.execute("CREATE DATABASE IF NOT EXISTS  "+ self.database_name)
+        self.cursor.execute("CREATE DATABASE IF NOT EXISTS  " + self.database_name)
         self.db.commit()
         self.db.close()
 
@@ -32,70 +33,84 @@ class RobotLogger():
             port=self.cfg["sql_database"]["port"],
             user=self.cfg["sql_database"]["user"],
             passwd=self.cfg["sql_database"]["password"],
-            database= self.cfg["log_info"]["database_name"],
-
+            database=self.cfg["log_info"]["database_name"],
         )
 
+        connection = self._get_connection()
+        self.cursor = connection.cursor(prepared=True)
+
+        self._create_tables()
+
+        self.robot_id = self.cfg["log_info"]["robot_id"]
+
+        if self._is_robot_id_assigned():
+            self._create_and_store_robot_id()
+
+        connection.commit()
+        connection.close()
+
+    def _get_connection(self):
         connection = None
         while True:
             try:
                 connection = self.db.get_connection()
-            except:
+            except Exception as e:
+                print(e)  # TODO check that you're not hiding a bug here: how it hangs
                 continue
             else:
                 break
+        return connection
 
-        self.cursor = connection.cursor(prepared=True)
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS " +
-                            "log(" +
-                            "timestamp TEXT NOT NULL, " +
-                            "topic_id TEXT NOT NULL, " +
-                            "data BLOB NOT NULL, " +
-                            "source TEXT NOT NULL, " +
-                            "mismatched BOOLEAN,"
-                            "robot_id INT"
-                            ")"
-                            )
+    def _is_robot_id_assigned(self):
+        return self.robot_id is None
 
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS " 
-                            "local_log(" 
-                            "timestamp TEXT NOT NULL, " 
-                            "topic_id TEXT NOT NULL, " 
-                            "data BLOB NOT NULL, "
-                            "source TEXT NOT NULL, "
-                            "mismatched BOOLEAN,"
-                            "robot_id INT"
-                            ")"
-                            )
-
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS "
-                            "topics(" 
-                            "topic_id INT AUTO_INCREMENT, " 
-                            "topic_name TEXT NOT NULL, " 
-                            "data_type TEXT NOT NULL, "
-                            "PRIMARY KEY (topic_id)"
-                            ")"
-                            )
-
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS "
-                            "robots(" 
-                            "robot_id INT AUTO_INCREMENT,"
-                            "PRIMARY KEY (robot_id)"
-                            ")"
-                            )
-
+    def _create_and_store_robot_id(self):
+        self.cursor.execute("INSERT INTO robots VALUES (NULL)")
+        self.cursor.execute("SELECT robot_id FROM robots ORDER BY robot_id DESC LIMIT 0, 1")
+        self.cfg["log_info"]["robot_id"] = self.cursor.fetchone()[0]
         self.robot_id = self.cfg["log_info"]["robot_id"]
+        with open("config.yml", "w") as f:
+            yaml.dump(self.cfg, f)
 
-        if self.cfg["log_info"]["robot_id"] is None:
-            self.cursor.execute("INSERT INTO robots VALUES (NULL)")
-            self.cursor.execute("SELECT robot_id FROM robots ORDER BY robot_id DESC LIMIT 0, 1")
-            self.cfg["log_info"]["robot_id"] = self.cursor.fetchone()[0]
-            self.robot_id = self.cfg["log_info"]["robot_id"]
-            with open("config.yml", "w") as f:
-                yaml.dump(self.cfg, f)
-
-        connection.commit()
-        connection.close()
+    def _create_tables(self):
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS " +
+            "log(" +
+            "timestamp TEXT NOT NULL, " +
+            "topic_id TEXT NOT NULL, " +
+            "data BLOB NOT NULL, " +
+            "source TEXT NOT NULL, " +
+            "mismatched BOOLEAN,"
+            "robot_id INT"
+            ")"
+        )
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS "
+            "local_log("
+            "timestamp TEXT NOT NULL, "
+            "topic_id TEXT NOT NULL, "
+            "data BLOB NOT NULL, "
+            "source TEXT NOT NULL, "
+            "mismatched BOOLEAN,"
+            "robot_id INT"
+            ")"
+        )
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS "
+            "topics("
+            "topic_id INT AUTO_INCREMENT, "
+            "topic_name TEXT NOT NULL, "
+            "data_type TEXT NOT NULL, "
+            "PRIMARY KEY (topic_id)"
+            ")"
+        )
+        self.cursor.execute(
+            "CREATE TABLE IF NOT EXISTS "
+            "robots("
+            "robot_id INT AUTO_INCREMENT,"
+            "PRIMARY KEY (robot_id)"
+            ")"
+        )
 
     def add_topic(self, topic_name, data_type):
 
@@ -126,14 +141,7 @@ class RobotLogger():
 
     def backup(self):
 
-        connection = None
-        while True:
-            try:
-                connection = self.db.get_connection()
-            except:
-                continue
-            else:
-                break
+        connection = self._get_connection()
 
         self.cursor = connection.cursor(prepared=True)
 
@@ -230,7 +238,7 @@ class RobotLogger():
         connection.commit()
         connection.close()
 
-    def clear_db(self):
+    def _clear_db(self):
 
         connection = None
         while True:
@@ -247,43 +255,7 @@ class RobotLogger():
         self.cursor.execute("DROP TABLE topics;")
         self.cursor.execute("DROP TABLE robots;")
 
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS " +
-                            "log(" +
-                            "timestamp TEXT NOT NULL, " +
-                            "topic_id TEXT NOT NULL, " +
-                            "data BLOB NOT NULL, " +
-                            "source TEXT NOT NULL, " +
-                            "mismatched BOOLEAN,"
-                            "robot_id INT"
-                            ")"
-                            )
-
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS " 
-                            "local_log(" 
-                            "timestamp TEXT NOT NULL, " 
-                            "topic_id TEXT NOT NULL, " 
-                            "data BLOB NOT NULL, "
-                            "source TEXT NOT NULL, "
-                            "mismatched BOOLEAN,"
-                            "robot_id INT"
-                            ")"
-                            )
-
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS "
-                            "topics(" 
-                            "topic_id INT AUTO_INCREMENT, " 
-                            "topic_name TEXT NOT NULL, " 
-                            "data_type TEXT NOT NULL, "
-                            "PRIMARY KEY (topic_id)"
-                            ")"
-                            )
-
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS "
-                            "robots(" 
-                            "robot_id INT AUTO_INCREMENT,"
-                            "PRIMARY KEY (robot_id)"
-                            ")"
-                            )
+        self._create_tables()
         connection.commit()
         connection.close()
 
