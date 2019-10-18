@@ -63,18 +63,18 @@ class SQLInspector:
 
         )
 
+
         self.database_name = self.cfg["log_info"]["database_name"]
 
         self.cursor = self.db.cursor(prepared=True)
 
-    def get_query(self, condition):
+    def get_query(self, table_name, condition):
 
-        execute_statement = "SELECT * FROM log WHERE " + condition
+        execute_statement = "SELECT * FROM "+table_name+" WHERE " + condition
         self.cursor.execute(execute_statement)
         list_of_matches = self.cursor.fetchall()
 
-
-        self.cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?;", (self.database_name, "log"))
+        self.cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=?;", (self.database_name, table_name))
         header_list = self.cursor.fetchall()
         query = Query(list_of_matches, header_list)
 
@@ -83,7 +83,6 @@ class SQLInspector:
 if __name__ == "__main__":
 
     inspector = SQLInspector()
-
-    query = inspector.get_query("topic_id = 1")
-    time.sleep(10)
+    query = inspector.get_query("log","1=1")
+    time.sleep(1)
     print(query)
